@@ -13,3 +13,5 @@ export interface ISearchLocation {
   limit?: number;
   units?: unitTypes;
 }
+
+export type messageType = 'error' | 'info' | 'warning';

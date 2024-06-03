@@ -43,22 +43,29 @@
       </div>
     </div>
 
-    <div class="search__error" v-if="errorMessages">{{ errorMessages }}</div>
+    <Message
+      v-if="message"
+      :type="messageType"
+      :message="message"
+      @closed="onCloseMessage"
+    ></Message>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, shallowRef, defineEmits, defineProps, onMounted } from 'vue';
 import httpService from '../services/axios.ts';
-import { unitTypes } from '../configs/type';
+import { messageType, unitTypes } from '../configs/type';
 import Loading from './Loading.vue';
+import Message from './Message.vue';
 
 const props = defineProps<{ units: unitTypes; tempUnits: string }>();
 const emit = defineEmits<{ (e: 'input', value: any): void }>();
 
 const queryString = ref('');
 const locationOptions: any = shallowRef([]);
-const errorMessages = ref('');
+const message = ref('');
+const messageType = ref<messageType>('error');
 const expanded = ref(false);
 const loading = ref(false);
 
@@ -67,6 +74,35 @@ const onEnter = (e: KeyboardEvent) => {
     onSearch();
   }
 };
+
+const onCloseMessage = () => {
+  message.value = '';
+};
+
+const getErrorResponseMessage = (error: any) => {
+  let message = '';
+  const errorMaps = {
+    badRequest: 400,
+    unauthorized: 401,
+  };
+  // debugger;
+
+  const res = error?.response;
+  switch (res?.status) {
+    case errorMaps.badRequest:
+      message =
+        "Bad request. To make search more precise put the city's name, comma, 2-letter country code (ISO3166)";
+      break;
+    case errorMaps.unauthorized:
+      message = res?.data?.message;
+      break;
+    default:
+      message = res?.data?.message;
+      break;
+  }
+  return message;
+};
+
 const onSearch = async () => {
   loading.value = true;
   try {
@@ -77,22 +113,19 @@ const onSearch = async () => {
     };
     const data = await httpService.searchLocation(params);
     console.log(data);
-    if (data.cod !== '200') {
-      errorMessages.value = data.message;
-      loading.value = false;
-      return;
-    }
     locationOptions.value = data.list || [];
     if (!locationOptions.value.length) {
-      errorMessages.value = `No result for \"${queryString.value}\"`;
+      message.value = `No result for \"${queryString.value}\". To make search more precise put the city's name, comma, 2-letter country code (ISO3166)`;
+      messageType.value = 'info';
       loading.value = false;
       return;
     }
     expanded.value = true;
-    errorMessages.value = '';
+    message.value = '';
   } catch (error: any) {
     console.log('error', error);
-    errorMessages.value = error.message;
+    message.value = getErrorResponseMessage(error);
+    messageType.value = 'error';
   }
   loading.value = false;
 };
@@ -160,10 +193,6 @@ onMounted(() => {
 
   &__error {
     margin-top: 1em;
-    color: #fff;
-    background-color: rgba(120, 203, 191, 0.8);
-    padding: 0.86em;
-    border-radius: 4pt;
   }
 
   .search-bar {
@@ -180,6 +209,7 @@ onMounted(() => {
 
   &__option {
     position: absolute;
+    z-index: 1;
     width: 100%;
     border-radius: 0 0 4px 4px;
     border: 1px solid #888;
