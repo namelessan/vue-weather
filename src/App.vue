@@ -195,6 +195,8 @@ onMounted(() => {
   margin: 0 auto;
   font-size: 12px;
   padding: 1em;
+  border-radius: 20px;
+  background-color: #fff;
   @include tablet {
     font-size: 14px;
     padding: 3rem;
@@ -206,7 +208,6 @@ onMounted(() => {
 }
 
 .weather {
-  height: 1000px;
   width: 100%;
   &__time {
     margin-top: 3em;
